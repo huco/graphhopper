@@ -1,5 +1,21 @@
-### 8.0 [not yet released]
+### 9.0 [not yet released]
 
+- removed shortest+fastest weightings, #2938
+- u_turn_costs information is no longer stored in profile. Use the TurnCostsConfig instead
+- the custom models do no longer include the speed, access and priority encoded values only implicitly, see docs/migration/config-migration-08-09.md
+- conditional access restriction tags are no longer considered from vehicle tag parsers and instead a car_road_access_conditional encoded value (similarly for bike + foot) can be used in a custom model. This fixes #2477. More details are accessible via path details "access_conditional" (i.e. converted from OSM access:conditional). See #2863
+- replaced (Vehicle)EncodedValueFactory and (Vehicle)TagParserFactory with ImportRegistry, #2935
+- encoded values used in custom models are added automatically, no need to add them to graph.encoded_values anymore, #2935
+- removed the ability to sort the graph (graph.do_sort) due to incomplete support, #2919
+- minor changes for import hooks, #2917
+- removed wheelchair vehicle and related parsers, with currently no complete replacement as it needs to be redone properly with a custom model
+- removed deprecated PMap.put
+
+### 8.0 [18 Oct 2023]
+
+- access "turn"-EncodedValue of EncodingManager through separate methods, see #2884
+- removed fastest weighting for public usage, use custom instead, see #2866
+- removed shortest weighting for public usage, use a high distance_influence instead, see #2865
 - removed duration:seconds as intermediate tag
 - /info endpoint does no longer return the vehicle used per profile and won't return encoded value of vehicles like car_average_speed
 - Country rules no longer contain maxspeed handling, enable a much better alternative via `max_speed_calculator.enabled: true`. On the client side use `max_speed_estimated` to determine if max_speed is from OSM or an estimation. See #2810
@@ -14,6 +30,7 @@
 - urban density is now based on road junctions, so the according parameters need adjustment in case
   the config file does not use the defaults, see #2842
 - removed heading penalty *time*, see #2563
+- base graph no longer allows loop edges, see #2862
 
 ### 7.0 [14 Mar 2023]
 

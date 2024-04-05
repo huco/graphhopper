@@ -17,10 +17,7 @@
  */
 package com.graphhopper.storage;
 
-import com.graphhopper.routing.ev.BooleanEncodedValue;
-import com.graphhopper.routing.ev.DecimalEncodedValue;
-import com.graphhopper.routing.ev.DecimalEncodedValueImpl;
-import com.graphhopper.routing.ev.SimpleBooleanEncodedValue;
+import com.graphhopper.routing.ev.*;
 import com.graphhopper.routing.util.AccessFilter;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.EncodingManager;
@@ -57,6 +54,7 @@ public abstract class AbstractGraphStorageTester {
         return new EncodingManager.Builder()
                 .add(carAccessEnc).add(carSpeedEnc)
                 .add(footAccessEnc).add(footSpeedEnc)
+                .add(RoadClass.create())
                 .build();
     }
 
@@ -532,21 +530,6 @@ public abstract class AbstractGraphStorageTester {
     }
 
     @Test
-    public void testIdenticalNodes() {
-        graph = createGHStorage();
-        graph.edge(0, 0).setDistance(100).set(carAccessEnc, true, true);
-        assertEquals(1, getCountAll(0));
-    }
-
-    @Test
-    public void testIdenticalNodes2() {
-        graph = createGHStorage();
-        graph.edge(0, 0).setDistance(100).set(carAccessEnc, true, false);
-        graph.edge(0, 0).setDistance(100).set(carAccessEnc, true, false);
-        assertEquals(2, getCountAll(0));
-    }
-
-    @Test
     public void testEdgeReturn() {
         graph = createGHStorage();
         EdgeIteratorState iter = graph.edge(4, 10).setDistance(100);
@@ -797,15 +780,6 @@ public abstract class AbstractGraphStorageTester {
         assertEquals(0, iter.fetchWayGeometry(FetchMode.PILLAR_ONLY).size());
         assertEquals(1, edgeState02.fetchWayGeometry(FetchMode.PILLAR_ONLY).getLat(0), 1e-1);
         assertEquals(3, edgeState20.fetchWayGeometry(FetchMode.PILLAR_ONLY).getLat(0), 1e-1);
-
-        // #162 a directed self referencing edge should be able to reverse its state too
-        graph.edge(3, 3).setDistance(2).set(carAccessEnc, true, true).set(carAccessEnc, true, false);
-        EdgeIterator edgeState33 = graph.createEdgeExplorer().setBaseNode(3);
-        edgeState33.next();
-        assertEquals(3, edgeState33.getBaseNode());
-        assertEquals(3, edgeState33.getAdjNode());
-        assertEquals(edgeState02.getFlags(), edgeState33.detach(false).getFlags());
-        assertEquals(edgeState20.getFlags(), edgeState33.detach(true).getFlags());
     }
 
     private int getCountOut(int node) {

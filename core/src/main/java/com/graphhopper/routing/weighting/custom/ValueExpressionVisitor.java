@@ -1,19 +1,20 @@
 package com.graphhopper.routing.weighting.custom;
 
 import com.graphhopper.json.MinMax;
+import com.graphhopper.json.Statement;
 import com.graphhopper.routing.ev.DecimalEncodedValue;
 import com.graphhopper.routing.ev.EncodedValue;
 import com.graphhopper.routing.ev.EncodedValueLookup;
 import com.graphhopper.routing.ev.IntEncodedValue;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.*;
+import org.codehaus.janino.Scanner;
 
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
+
+import static com.graphhopper.json.Statement.Keyword.IF;
 
 /**
  * Expression visitor for right-hand side value of limit_to or multiply_by.
@@ -135,13 +136,79 @@ public class ValueExpressionVisitor implements Visitor.AtomVisitor<Boolean, Exce
         return result;
     }
 
-    static MinMax findMinMax(Set<String> createdObjects, String valueExpression, EncodedValueLookup lookup) {
+    static Set<String> findVariables(List<Statement> statements, EncodedValueLookup lookup) {
+        List<List<Statement>> blocks = CustomModelParser.splitIntoBlocks(statements);
+        Set<String> variables = new LinkedHashSet<>();
+        for (List<Statement> block : blocks) findVariablesForBlock(variables, block, lookup);
+        return variables;
+    }
+
+    private static void findVariablesForBlock(Set<String> createdObjects, List<Statement> block, EncodedValueLookup lookup) {
+        if (block.isEmpty() || !IF.equals(block.get(0).getKeyword()))
+            throw new IllegalArgumentException("Every block must start with an if-statement");
+
+        if (block.get(0).getCondition().trim().equals("true")) {
+            createdObjects.addAll(ValueExpressionVisitor.findVariables(block.get(0).getValue(), lookup));
+        } else {
+            for (Statement s : block) {
+                createdObjects.addAll(ValueExpressionVisitor.findVariables(s.getValue(), lookup));
+            }
+        }
+    }
+
+    static Set<String> findVariables(String valueExpression, EncodedValueLookup lookup) {
         ParseResult result = parse(valueExpression, lookup::hasEncodedValue);
         if (!result.ok)
             throw new IllegalArgumentException(result.invalidMessage);
         if (result.guessedVariables.size() > 1)
             throw new IllegalArgumentException("Currently only a single EncodedValue is allowed on the right-hand side, but was " + result.guessedVariables.size() + ". Value expression: " + valueExpression);
 
+        // TODO Nearly duplicate code as in findMinMax
+        double value;
+        try {
+            // Speed optimization for numbers only as its over 200x faster than ExpressionEvaluator+cook+evaluate!
+            // We still call the parse() method before as it is only ~3x slower and might increase security slightly. Because certain
+            // expressions are accepted from Double.parseDouble but parse() rejects them. With this call order we avoid unexpected security problems.
+            value = Double.parseDouble(valueExpression);
+        } catch (NumberFormatException ex) {
+            try {
+                if (result.guessedVariables.isEmpty()) { // without encoded values
+                    ExpressionEvaluator ee = new ExpressionEvaluator();
+                    ee.cook(valueExpression);
+                    value = ((Number) ee.evaluate()).doubleValue();
+                } else if (lookup.hasEncodedValue(valueExpression)) { // speed up for common case that complete right-hand side is the encoded value
+                    EncodedValue enc = lookup.getEncodedValue(valueExpression, EncodedValue.class);
+                    value = Math.min(getMin(enc), getMax(enc));
+                } else {
+                    // single encoded value
+                    ExpressionEvaluator ee = new ExpressionEvaluator();
+                    String var = result.guessedVariables.iterator().next();
+                    ee.setParameters(new String[]{var}, new Class[]{double.class});
+                    ee.cook(valueExpression);
+                    double max = getMax(lookup.getEncodedValue(var, EncodedValue.class));
+                    Number val1 = (Number) ee.evaluate(max);
+                    double min = getMin(lookup.getEncodedValue(var, EncodedValue.class));
+                    Number val2 = (Number) ee.evaluate(min);
+                    value = Math.min(val1.doubleValue(), val2.doubleValue());
+                }
+            } catch (CompileException | InvocationTargetException ex2) {
+                throw new IllegalArgumentException(ex2);
+            }
+        }
+        if (value < 0)
+            throw new IllegalArgumentException("illegal expression as it can result in a negative weight: " + valueExpression);
+
+        return result.guessedVariables;
+    }
+
+    static MinMax findMinMax(String valueExpression, EncodedValueLookup lookup) {
+        ParseResult result = parse(valueExpression, lookup::hasEncodedValue);
+        if (!result.ok)
+            throw new IllegalArgumentException(result.invalidMessage);
+        if (result.guessedVariables.size() > 1)
+            throw new IllegalArgumentException("Currently only a single EncodedValue is allowed on the right-hand side, but was " + result.guessedVariables.size() + ". Value expression: " + valueExpression);
+
+        // TODO Nearly duplicate as in findVariables
         try {
             // Speed optimization for numbers only as its over 200x faster than ExpressionEvaluator+cook+evaluate!
             // We still call the parse() method before as it is only ~3x slower and might increase security slightly. Because certain
@@ -159,7 +226,6 @@ public class ValueExpressionVisitor implements Visitor.AtomVisitor<Boolean, Exce
                 return new MinMax(val, val);
             }
 
-            createdObjects.addAll(result.guessedVariables);
             if (lookup.hasEncodedValue(valueExpression)) { // speed up for common case that complete right-hand side is the encoded value
                 EncodedValue enc = lookup.getEncodedValue(valueExpression, EncodedValue.class);
                 double min = getMin(enc), max = getMax(enc);
@@ -187,8 +253,8 @@ public class ValueExpressionVisitor implements Visitor.AtomVisitor<Boolean, Exce
     }
 
     static double getMax(EncodedValue enc) {
-        if (enc instanceof DecimalEncodedValue) return ((DecimalEncodedValue) enc).getMaxStorableDecimal();
-        else if (enc instanceof IntEncodedValue) return ((IntEncodedValue) enc).getMaxStorableInt();
+        if (enc instanceof DecimalEncodedValue) return ((DecimalEncodedValue) enc).getMaxOrMaxStorableDecimal();
+        else if (enc instanceof IntEncodedValue) return ((IntEncodedValue) enc).getMaxOrMaxStorableInt();
         throw new IllegalArgumentException("Cannot use non-number data '" + enc.getName() + "' in value expression");
     }
 }

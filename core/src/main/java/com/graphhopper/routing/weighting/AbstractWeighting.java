@@ -33,7 +33,7 @@ public abstract class AbstractWeighting implements Weighting {
     private final TurnCostProvider turnCostProvider;
 
     protected AbstractWeighting(BooleanEncodedValue accessEnc, DecimalEncodedValue speedEnc, TurnCostProvider turnCostProvider) {
-        if (!isValidName(getName()))
+        if (!Weighting.isValidName(getName()))
             throw new IllegalStateException("Not a valid name for a Weighting: " + getName());
         this.accessEnc = accessEnc;
         this.speedEnc = speedEnc;
@@ -41,24 +41,7 @@ public abstract class AbstractWeighting implements Weighting {
     }
 
     @Override
-    public boolean edgeHasNoAccess(EdgeIteratorState edgeState, boolean reverse) {
-        return reverse ? !edgeState.getReverse(accessEnc) : !edgeState.get(accessEnc);
-    }
-
-    /**
-     * In most cases subclasses should only override this method to change the edge-weight. The turn cost handling
-     * should normally be changed by passing another {@link TurnCostProvider} implementation to the constructor instead.
-     */
-    public abstract double calcEdgeWeight(EdgeIteratorState edgeState, boolean reverse);
-
-    @Override
     public long calcEdgeMillis(EdgeIteratorState edgeState, boolean reverse) {
-        // special case for loop edges: since they do not have a meaningful direction we always need to read them in
-        // forward direction
-        if (edgeState.getBaseNode() == edgeState.getAdjNode()) {
-            reverse = false;
-        }
-
         if (reverse && !edgeState.getReverse(accessEnc) || !reverse && !edgeState.get(accessEnc))
             throw new IllegalStateException("Calculating time should not require to read speed from edge in wrong direction. " +
                     "(" + edgeState.getBaseNode() + " - " + edgeState.getAdjNode() + ") "
@@ -89,20 +72,9 @@ public abstract class AbstractWeighting implements Weighting {
         return turnCostProvider != NO_TURN_COST_PROVIDER;
     }
 
-    public TurnCostProvider getTurnCostProvider() {
-        return turnCostProvider;
-    }
-
-    static boolean isValidName(String name) {
-        if (name == null || name.isEmpty())
-            return false;
-
-        return name.matches("[\\|_a-z]+");
-    }
-
     @Override
     public String toString() {
-        return getName() + "|" + speedEnc.getName().split("$")[0];
+        return getName() + "|" + speedEnc.getName();
     }
 
 }

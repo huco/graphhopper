@@ -42,13 +42,8 @@ public class QueryGraphWeighting implements Weighting {
     }
 
     @Override
-    public double getMinWeight(double distance) {
-        return weighting.getMinWeight(distance);
-    }
-
-    @Override
-    public boolean edgeHasNoAccess(EdgeIteratorState edgeState, boolean reverse) {
-        return weighting.edgeHasNoAccess(edgeState, reverse);
+    public double calcMinWeightPerDistance() {
+        return weighting.calcMinWeightPerDistance();
     }
 
     @Override
