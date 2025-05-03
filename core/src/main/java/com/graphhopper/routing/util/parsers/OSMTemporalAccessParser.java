@@ -24,8 +24,6 @@ import com.graphhopper.reader.osm.conditional.DateRangeParser;
 import com.graphhopper.routing.ev.EdgeIntAccess;
 import com.graphhopper.storage.IntsRef;
 import com.graphhopper.util.Helper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.util.*;
@@ -37,7 +35,6 @@ import java.util.*;
  */
 public class OSMTemporalAccessParser implements TagParser {
 
-    private static final Logger logger = LoggerFactory.getLogger(OSMTemporalAccessParser.class);
     private final Collection<String> conditionals;
     private final Setter restrictionSetter;
     private final DateRangeParser parser;

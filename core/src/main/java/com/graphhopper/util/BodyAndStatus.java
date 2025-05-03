@@ -16,26 +16,24 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.routing.util.countryrules.europe;
+package com.graphhopper.util;
 
-import com.graphhopper.reader.ReaderWay;
-import com.graphhopper.routing.ev.RoadClass;
-import com.graphhopper.routing.ev.Toll;
-import com.graphhopper.routing.util.countryrules.CountryRule;
+import com.fasterxml.jackson.databind.JsonNode;
 
-public class GreeceCountryRule implements CountryRule {
+public class BodyAndStatus {
+    private final JsonNode body;
+    private final int status;
 
-    @Override
-    public Toll getToll(ReaderWay readerWay, Toll currentToll) {
-        if (currentToll != Toll.MISSING) {
-            return currentToll;
-        }
+    public BodyAndStatus(JsonNode body, int status) {
+        this.body = body;
+        this.status = status;
+    }
 
-        RoadClass roadClass = RoadClass.find(readerWay.getTag("highway", ""));
-        if (roadClass == RoadClass.MOTORWAY) {
-            return Toll.ALL;
-        }
+    public JsonNode getBody() {
+        return body;
+    }
 
-        return currentToll;
+    public int getStatus() {
+        return status;
     }
 }

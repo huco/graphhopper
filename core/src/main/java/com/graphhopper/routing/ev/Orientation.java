@@ -15,29 +15,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.graphhopper.routing.util.countryrules.europe;
+package com.graphhopper.routing.ev;
 
-import com.graphhopper.reader.ReaderWay;
-import com.graphhopper.routing.ev.RoadClass;
-import com.graphhopper.routing.ev.Toll;
-import com.graphhopper.routing.util.countryrules.CountryRule;
+public class Orientation {
+    public static final String KEY = "orientation";
 
-/**
- * Defines the default rules for Croatian roads
- *
- * @author Thomas Butz
- */
-public class RomaniaCountryRule implements CountryRule {
-
-    @Override
-    public Toll getToll(ReaderWay readerWay, Toll currentToll) {
-        if (currentToll != Toll.MISSING) {
-            return currentToll;
-        }
-
-        RoadClass roadClass = RoadClass.find(readerWay.getTag("highway", ""));
-        if (roadClass == RoadClass.MOTORWAY || roadClass == RoadClass.TRUNK)
-            return Toll.ALL;
-        return currentToll;
+    // Due to pillar nodes we need 2 values: the orientation at the adjacent node and the reverse
+    // value for orientation at the base node. Store in degrees.
+    public static DecimalEncodedValue create() {
+        return new DecimalEncodedValueImpl(KEY, 5, 0, 360 / 30.0, false, true, false);
     }
 }

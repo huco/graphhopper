@@ -40,6 +40,8 @@ Here is an overview:
  * highsource, more efficient geometry update, UI fixes
  * hoofstephan, bug fix   
  * IsNull, improvements like #708
+ * IldarKhayrutdinov, use cache on different machines
+ * james-willis, improved isochrones triangulation robustness
  * Janekdererste, GUI for public transit
  * jansoe, many improvements regarding A* algorithm, forcing direction, roundabouts etc
  * jansonhanson, general host config
@@ -65,8 +67,10 @@ Here is an overview:
  * ocampana, initial implementation for instructions
  * oflebbe, work on iOS port and issues like #2060
  * OlafFlebbeBosch, improvements like #2730
+ * osamaalmaani, added missing config option for graph.encoded_values in the config-example.yml file
  * oschlueter, fixes like #1185
  * otbutz, added multiple EncodedValues
+ * pantsleftinwash, speed parsing improvements
  * PGWelch, shapefile reader #874
  * rafaelstelles, fix deserializer web-api
  * rajanski, script to do routing via PostGIS

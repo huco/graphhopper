@@ -16,20 +16,26 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.routing.util.countryrules.europe;
+package com.graphhopper.application.resources;
 
-import com.graphhopper.reader.ReaderWay;
-import com.graphhopper.routing.ev.Toll;
-import com.graphhopper.routing.util.countryrules.CountryRule;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.graphhopper.util.BodyAndStatus;
 
-public class VaticanCityCountryRule implements CountryRule {
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
 
-    @Override
-    public Toll getToll(ReaderWay readerWay, Toll currentToll) {
-        if (currentToll != Toll.MISSING) {
-            return currentToll;
+public class Util {
+    public static BodyAndStatus getWithStatus(WebTarget webTarget) {
+        try (Response response = webTarget.request().get()) {
+            return new BodyAndStatus(response.readEntity(JsonNode.class), response.getStatus());
         }
-
-        return Toll.NO;
     }
+
+    public static BodyAndStatus postWithStatus(WebTarget webTarget, String json) {
+        try (Response response = webTarget.request().post(Entity.json(json))) {
+            return new BodyAndStatus(response.readEntity(JsonNode.class), response.getStatus());
+        }
+    }
+
 }

@@ -30,6 +30,7 @@ import java.io.Closeable;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.function.IntUnaryOperator;
 
 import static com.graphhopper.util.Helper.nf;
 import static com.graphhopper.util.Parameters.Details.STREET_NAME;
@@ -373,6 +374,12 @@ public class BaseGraph implements Graph, Closeable {
         }
     }
 
+    public void relabelNodes(IntUnaryOperator getNewNodeForOldNode) {
+        if (isFrozen())
+            throw new IllegalStateException("Cannot relabel nodes if graph is already frozen");
+        store.relabelNodes(getNewNodeForOldNode);
+    }
+
     @Override
     public EdgeIteratorState getEdgeIteratorState(int edgeId, int adjNode) {
         EdgeIteratorStateImpl edge = new EdgeIteratorStateImpl(this);
@@ -424,6 +431,15 @@ public class BaseGraph implements Graph, Closeable {
     public boolean isAdjacentToNode(int edge, int node) {
         long edgePointer = store.toEdgePointer(edge);
         return isAdjacentToNode(node, edgePointer);
+    }
+
+    /**
+     * @return true if the specified node is the adjacent node of the specified edge
+     * (relative to the direction in which the edge is stored).
+     */
+    public boolean isAdjNode(int edge, int node) {
+        long edgePointer = store.toEdgePointer(edge);
+        return node == store.getNodeB(edgePointer);
     }
 
     private void setWayGeometry_(PointList pillarNodes, long edgePointer, boolean reverse) {
